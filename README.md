@@ -84,6 +84,12 @@ Monorepo with a Spring Boot backend, Flutter web frontend, and local observabili
      ```sh
      kubectl -n monitoring get secret monitoring-grafana -o jsonpath="{.data.admin-password}" | base64 --decode
      ```
+6. Port-forward Prometheus:
+   ```sh
+   kubectl -n monitoring port-forward svc/monitoring-kube-prometheus-prometheus 9090:9090
+   ```
+7. Open Prometheus:
+   - http://localhost:9090
 
 ### Uninstall
 
