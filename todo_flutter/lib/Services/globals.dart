@@ -1,2 +1,2 @@
-const String baseURL = "http://localhost:9191/tasks";
+const String baseURL = "/api/tasks";
 const Map<String, String> headers = {"Content-Type": "application/json"};

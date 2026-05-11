@@ -1,5 +1,5 @@
 services:
-  todo-springboot:
+  todo-backend:
     build:
       context: ./todo-springboot
     image: todo-springboot
@@ -15,7 +15,7 @@ services:
     ports:
       - "8081:80"
     depends_on:
-      - todo-springboot
+      - todo-backend
 
   mysql:
     image: mysql:8.4

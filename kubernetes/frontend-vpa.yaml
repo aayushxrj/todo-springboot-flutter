@@ -1,0 +1,21 @@
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: todo-frontend-vpa
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: todo-frontend
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: todo-frontend
+        controlledResources: ["cpu", "memory"]
+        minAllowed:
+          cpu: 50m
+          memory: 128Mi
+        maxAllowed:
+          cpu: 500m
+          memory: 512Mi

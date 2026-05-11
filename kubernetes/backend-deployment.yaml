@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-backend
+  template:
+    metadata:
+      labels:
+        app: todo-backend
+    spec:
+      containers:
+        - name: todo-backend
+          image: todo-springboot:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9191
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql:3306/todo
+            - name: SPRING_DATASOURCE_USERNAME
+              value: root
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: todo
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: todo-backend
+  ports:
+    - name: http
+      port: 9191
+      targetPort: 9191
