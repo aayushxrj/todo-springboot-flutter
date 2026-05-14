@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:todo_flutter/Screens/add_task_screen.dart';
+import 'package:todo_flutter/Screens/login_screen.dart';
+import 'package:todo_flutter/Services/auth_service.dart';
 import 'package:todo_flutter/Services/database_services.dart';
 import 'package:todo_flutter/models/task.dart';
 import 'package:todo_flutter/models/tasks_data.dart';
@@ -17,11 +19,22 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Task>? tasks;
 
   void getTasks() async {
-    List<Task> fetchedTasks = await DatabaseServices.getTasks();
-    Provider.of<TasksData>(context, listen: false).tasks = fetchedTasks;
-    setState(() {
-      tasks = fetchedTasks;
-    });
+    try {
+      List<Task> fetchedTasks = await DatabaseServices.getTasks();
+      Provider.of<TasksData>(context, listen: false).tasks = fetchedTasks;
+      setState(() {
+        tasks = fetchedTasks;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      await AuthService.logout();
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
   }
 
   @override
@@ -43,6 +56,21 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('Todo Tasks (${Provider.of<TasksData>(context).tasks.length})'),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await AuthService.logout();
+              if (!mounted) {
+                return;
+              }
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+          ),
+        ],
       ),
       body: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),

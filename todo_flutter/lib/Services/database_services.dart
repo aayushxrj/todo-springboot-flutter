@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:todo_flutter/Services/auth_service.dart';
 import 'package:todo_flutter/Services/globals.dart';
 import 'package:todo_flutter/models/task.dart';
 
@@ -12,13 +13,18 @@ class DatabaseServices {
     };
 
     var body = json.encode(data);
-    var url = Uri.parse('$baseURL/add');
+    var url = Uri.parse('$tasksBaseUrl/add');
+    final headers = await AuthService.authHeaders();
 
     http.Response response = await http.post(
-        url,
-        headers: headers,
-        body: body
+      url,
+      headers: headers,
+      body: body,
     );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception("Failed to add task: ${response.statusCode}");
+    }
 
     print(response.body);
 
@@ -30,30 +36,43 @@ class DatabaseServices {
   }
 
   static Future<void> updateTask(Task task) async {
-    var url = Uri.parse('$baseURL/update/${task.id}');
+    var url = Uri.parse('$tasksBaseUrl/update/${task.id}');
+    final headers = await AuthService.authHeaders();
 
-    await http.put(
+    final response = await http.put(
       url,
       headers: headers,
     );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception("Failed to update task: ${response.statusCode}");
+    }
   }
 
   static Future<void> deleteTask(Task task) async {
-    var url = Uri.parse('$baseURL/delete/${task.id}');
+    var url = Uri.parse('$tasksBaseUrl/delete/${task.id}');
+    final headers = await AuthService.authHeaders();
 
-    await http.delete(
+    final response = await http.delete(
       url,
       headers: headers,
     );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception("Failed to delete task: ${response.statusCode}");
+    }
   }
 
   static Future<List<Task>> getTasks() async {
-    var url = Uri.parse(baseURL);
+    var url = Uri.parse(tasksBaseUrl);
+    final headers = await AuthService.authHeaders();
 
     http.Response response = await http.get(
-        url,
-        headers: headers
+      url,
+      headers: headers,
     );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception("Failed to fetch tasks: ${response.statusCode}");
+    }
 
     print(response.body);
 
