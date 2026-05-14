@@ -14,26 +14,22 @@ import java.util.List;
 public class TaskController {
 
     @Autowired
-    private TaskRepository taskRepository;
+    private TaskService taskService;
 
     @GetMapping
     public List<TaskItem> getTasks(){
-        return taskRepository.findAll();
+        return taskService.getTasks();
     }
 
     @PostMapping("/add")
     public TaskItem addTask(@Valid @RequestBody TaskItem taskItem) {
-        return taskRepository.save(taskItem);
+        return taskService.addTask(taskItem);
     }
 
     @PutMapping("/update/{id}")
     public ResponseEntity updateTask(@PathVariable Long id){
-        boolean exist = taskRepository.existsById(id);
-        if(exist){
-            TaskItem task = taskRepository.getById(id);
-            boolean done = task.isDone();
-            task.setDone(!done);
-            taskRepository.save(task);
+        boolean updated = taskService.toggleTaskDone(id);
+        if(updated){
             return new ResponseEntity<>("Task is updated", HttpStatus.OK);
         }
         return new ResponseEntity<>("Task is not exist", HttpStatus.BAD_REQUEST);
@@ -41,9 +37,8 @@ public class TaskController {
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity deleteTask(@PathVariable Long id){
-        boolean exist = taskRepository.existsById(id);
-        if(exist){
-            taskRepository.deleteById(id);
+        boolean deleted = taskService.deleteTask(id);
+        if(deleted){
             return new ResponseEntity<>("Task is deleted", HttpStatus.OK);
         }
         return new ResponseEntity<>("Task is not exist", HttpStatus.BAD_REQUEST);
