@@ -1,0 +1,16 @@
+entity user {}
+
+entity system {
+  relation admin @user
+  relation user @user
+
+  action read_tasks = admin or user
+  action create_tasks = admin or user
+}
+
+entity task {
+  relation system @system
+
+  action update = system.admin
+  action delete = system.admin
+}

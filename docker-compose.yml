@@ -7,6 +7,10 @@ services:
       - "9191:9191"
     depends_on:
       - mysql
+      - permify
+    environment:
+      PERMIFY_BASE_URL: http://permify:3476
+      PERMIFY_TENANT_ID: t1
 
   todo-flutter-web:
     build:
@@ -47,6 +51,12 @@ services:
 
     depends_on:
       - prometheus
+
+  permify:
+    image: ghcr.io/permify/permify
+    ports:
+      - "3476:3476"
+      - "3478:3478"
 volumes:
   mysql_data:
 
