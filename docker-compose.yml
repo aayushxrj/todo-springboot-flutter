@@ -7,10 +7,25 @@ services:
       - "9191:9191"
     depends_on:
       - mysql
+      - todos-list
       - permify
     environment:
       PERMIFY_BASE_URL: http://permify:3476
       PERMIFY_TENANT_ID: t1
+      TODOSLIST_BASE_URL: http://todos-list:8080
+
+  todos-list:
+    build:
+      context: ./todos-list
+    image: todos-list
+    ports:
+      - "8082:8080"
+    depends_on:
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/todo
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: todo
 
   todo-flutter-web:
     build:

@@ -1,5 +1,6 @@
 package com.aayushxrj.Todo.App.Task;
 
+import com.aayushxrj.Todo.App.TodosList.TodosListClient;
 import com.aayushxrj.Todo.App.Permify.PermifyAuthorizationService;
 import com.aayushxrj.Todo.App.Permify.PermifyClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +22,13 @@ public class TaskServiceImpl implements TaskService {
     @Autowired
     private PermifyClient permifyClient;
 
+    @Autowired
+    private TodosListClient todosListClient;
+
     @Override
     public List<TaskItem> getTasks() {
         permifyAuthorizationService.requireSystemPermission("read_tasks");
-        return taskRepository.findAll();
+        return todosListClient.getTasks();
     }
 
     @Override

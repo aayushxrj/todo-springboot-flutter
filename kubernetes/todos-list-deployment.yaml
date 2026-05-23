@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: todo-backend
+  name: todos-list
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: todo-backend
+      app: todos-list
   template:
     metadata:
       labels:
-        app: todo-backend
+        app: todos-list
     spec:
       containers:
-        - name: todo-backend
-          image: todo-springboot:latest
+        - name: todos-list
+          image: todos-list:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 9191
+            - containerPort: 8080
           env:
             - name: SPRING_DATASOURCE_URL
               value: jdbc:mysql://mysql:3306/todo
@@ -25,8 +25,6 @@ spec:
               value: root
             - name: SPRING_DATASOURCE_PASSWORD
               value: todo
-            - name: TODOSLIST_BASE_URL
-              value: http://todos-list:8080
           resources:
             requests:
               cpu: 100m
@@ -38,12 +36,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: todo-backend
+  name: todos-list
 spec:
   type: ClusterIP
   selector:
-    app: todo-backend
+    app: todos-list
   ports:
     - name: http
-      port: 9191
-      targetPort: 9191
+      port: 8080
+      targetPort: 8080

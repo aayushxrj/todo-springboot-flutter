@@ -13,6 +13,7 @@ Monorepo with a Spring Boot backend, Flutter web frontend, and local observabili
 ## Project layout
 
 - todo-springboot/ - Spring Boot backend
+- todos-list/ - Spring Boot service that serves DB-backed todos
 - todo_flutter/ - Flutter web frontend
 - docker-compose.yml - Docker Compose stack
 - kubernetes/ - Kubernetes manifests
@@ -45,6 +46,7 @@ Monorepo with a Spring Boot backend, Flutter web frontend, and local observabili
 3. Build images:
    ```sh
    docker build -t todo-springboot:latest ./todo-springboot
+   docker build -t todos-list:latest ./todos-list
    docker build -t todo-flutter-web:latest ./todo_flutter
    ```
 4. Apply manifests:
