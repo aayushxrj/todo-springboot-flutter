@@ -8,3 +8,9 @@ final String apiBaseUrl = kIsWeb
 
 final String tasksBaseUrl = "$apiBaseUrl/tasks";
 final String authBaseUrl = "$apiBaseUrl/auth";
+
+final String kratosBaseUrl = kIsWeb
+	? "http://localhost:4433"
+	: (defaultTargetPlatform == TargetPlatform.android
+		? "http://10.0.2.2:4433"
+		: "http://localhost:4433");
