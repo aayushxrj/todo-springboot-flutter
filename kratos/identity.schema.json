@@ -1,0 +1,44 @@
+{
+  "$id": "https://todo.local/identity.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Todo Identity",
+  "type": "object",
+  "properties": {
+    "traits": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "Email",
+          "ory.sh/kratos": {
+            "credentials": {
+              "password": {
+                "identifier": true
+              }
+            }
+          }
+        },
+        "name": {
+          "type": "object",
+          "properties": {
+            "first": {
+              "type": "string",
+              "title": "First name"
+            },
+            "last": {
+              "type": "string",
+              "title": "Last name"
+            }
+          },
+          "required": ["first", "last"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["email", "name"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["traits"],
+  "additionalProperties": false
+}

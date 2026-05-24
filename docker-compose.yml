@@ -45,6 +45,41 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+
+  kratos-postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: kratos
+      POSTGRES_PASSWORD: kratos
+      POSTGRES_DB: kratos
+    ports:
+      - "5432:5432"
+    volumes:
+      - kratos_postgres_data:/var/lib/postgresql/data
+
+  kratos-migrate:
+    image: oryd/kratos:v1.2.0
+    command: ["migrate", "sql", "-e", "--yes"]
+    environment:
+      DSN: postgres://kratos:kratos@kratos-postgres:5432/kratos?sslmode=disable
+    volumes:
+      - ./kratos:/etc/config
+    depends_on:
+      - kratos-postgres
+
+  kratos:
+    image: oryd/kratos:v1.2.0
+    command: ["serve", "-c", "/etc/config/kratos.yml"]
+    environment:
+      DSN: postgres://kratos:kratos@kratos-postgres:5432/kratos?sslmode=disable
+    ports:
+      - "4433:4433"
+      - "4434:4434"
+    volumes:
+      - ./kratos:/etc/config
+    depends_on:
+      - kratos-postgres
+
   prometheus:
     image: prom/prometheus
     container_name: prometheus
@@ -74,4 +109,5 @@ services:
       - "3478:3478"
 volumes:
   mysql_data:
+  kratos_postgres_data:
 
