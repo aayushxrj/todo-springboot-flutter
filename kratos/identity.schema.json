@@ -33,6 +33,12 @@
           },
           "required": ["first", "last"],
           "additionalProperties": false
+        },
+        "role": {
+          "type": "string",
+          "title": "Role",
+          "enum": ["user", "admin"],
+          "default": "user"
         }
       },
       "required": ["email", "name"],

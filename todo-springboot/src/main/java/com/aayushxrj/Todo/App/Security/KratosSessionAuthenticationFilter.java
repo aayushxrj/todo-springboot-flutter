@@ -88,10 +88,7 @@ public class KratosSessionAuthenticationFilter extends OncePerRequestFilter {
 
         if (whoamiResponse.getStatusCode().is2xxSuccessful() && whoamiResponse.getBody() != null) {
             String principal = extractPrincipal(whoamiResponse.getBody());
-            List<SimpleGrantedAuthority> authorities = List.of(
-                    new SimpleGrantedAuthority("ROLE_USER"),
-                    new SimpleGrantedAuthority("ROLE_ADMIN")
-            );
+            List<SimpleGrantedAuthority> authorities = extractAuthorities(whoamiResponse.getBody());
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     principal,
                     null,
@@ -119,5 +116,21 @@ public class KratosSessionAuthenticationFilter extends OncePerRequestFilter {
             return "kratos-user";
         }
         return "kratos-user";
+    }
+
+    private List<SimpleGrantedAuthority> extractAuthorities(String body) {
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode roleNode = root.path("identity").path("traits").path("role");
+            if (roleNode.isTextual() && "admin".equalsIgnoreCase(roleNode.asText())) {
+                return List.of(
+                        new SimpleGrantedAuthority("ROLE_USER"),
+                        new SimpleGrantedAuthority("ROLE_ADMIN")
+                );
+            }
+        } catch (IOException ignored) {
+            return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
     }
 }

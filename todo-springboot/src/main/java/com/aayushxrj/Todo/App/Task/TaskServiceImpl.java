@@ -4,6 +4,8 @@ import com.aayushxrj.Todo.App.TodosList.TodosListClient;
 import com.aayushxrj.Todo.App.Permify.PermifyAuthorizationService;
 import com.aayushxrj.Todo.App.Permify.PermifyClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -35,7 +37,9 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskItem addTask(TaskItem taskItem) {
-        permifyAuthorizationService.requireSystemPermission("create_tasks");
+        if (!isAdmin()) {
+            permifyAuthorizationService.requireSystemPermission("create_tasks");
+        }
         TaskItem saved = taskRepository.save(taskItem);
         permifyClient.writeTuples(
             java.util.List.of(
@@ -51,7 +55,9 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public boolean toggleTaskDone(Long id) {
-        permifyAuthorizationService.requireTaskPermission("update", id.toString());
+        if (!isAdmin()) {
+            permifyAuthorizationService.requireTaskPermission("update", id.toString());
+        }
         return taskRepository.findById(id).map(task -> {
             task.setDone(!task.isDone());
             taskRepository.save(task);
@@ -61,10 +67,24 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public boolean deleteTask(Long id) {
-        permifyAuthorizationService.requireTaskPermission("delete", id.toString());
+        if (!isAdmin()) {
+            permifyAuthorizationService.requireTaskPermission("delete", id.toString());
+        }
         if(taskRepository.existsById(id)){
             taskRepository.deleteById(id);
             return true;
+        }
+        return false;
+    }
+
+    private boolean isAdmin() {
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            return false;
+        }
+        for (GrantedAuthority authority : SecurityContextHolder.getContext().getAuthentication().getAuthorities()) {
+            if ("ROLE_ADMIN".equals(authority.getAuthority())) {
+                return true;
+            }
         }
         return false;
     }
