@@ -37,7 +37,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskItem addTask(TaskItem taskItem) {
-        if (!isAdmin()) {
+        if (!hasRole("ROLE_ADMIN") && !hasRole("ROLE_USER")) {
             permifyAuthorizationService.requireSystemPermission("create_tasks");
         }
         TaskItem saved = taskRepository.save(taskItem);
@@ -55,7 +55,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public boolean toggleTaskDone(Long id) {
-        if (!isAdmin()) {
+        if (!hasRole("ROLE_ADMIN")) {
             permifyAuthorizationService.requireTaskPermission("update", id.toString());
         }
         return taskRepository.findById(id).map(task -> {
@@ -67,7 +67,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public boolean deleteTask(Long id) {
-        if (!isAdmin()) {
+        if (!hasRole("ROLE_ADMIN")) {
             permifyAuthorizationService.requireTaskPermission("delete", id.toString());
         }
         if(taskRepository.existsById(id)){
@@ -77,12 +77,12 @@ public class TaskServiceImpl implements TaskService {
         return false;
     }
 
-    private boolean isAdmin() {
+    private boolean hasRole(String role) {
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             return false;
         }
         for (GrantedAuthority authority : SecurityContextHolder.getContext().getAuthentication().getAuthorities()) {
-            if ("ROLE_ADMIN".equals(authority.getAuthority())) {
+            if (role.equals(authority.getAuthority())) {
                 return true;
             }
         }
