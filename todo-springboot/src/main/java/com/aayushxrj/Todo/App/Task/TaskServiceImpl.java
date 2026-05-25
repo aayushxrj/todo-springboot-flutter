@@ -23,10 +23,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public List<TaskItem> getTasks() {
-        // Temporarily bypass Permify and TodosList to validate Kratos flow.
-        // permifyAuthorizationService.requireSystemPermission("read_tasks");
-        // return todosListClient.getTasks();
-        return taskRepository.findAll();
+        return todosListClient.getTasks();
     }
 
     @Override

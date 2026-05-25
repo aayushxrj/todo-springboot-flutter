@@ -9,6 +9,7 @@ services:
       - mysql
       - todos-list
       - permify
+      - hydra
     environment:
       PERMIFY_BASE_URL: http://permify:3476
       PERMIFY_TENANT_ID: t1
@@ -56,6 +57,40 @@ services:
       - "5432:5432"
     volumes:
       - kratos_postgres_data:/var/lib/postgresql/data
+
+  hydra-postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: hydra
+      POSTGRES_PASSWORD: hydra
+      POSTGRES_DB: hydra
+    ports:
+      - "5433:5432"
+    volumes:
+      - hydra_postgres_data:/var/lib/postgresql/data
+
+  hydra-migrate:
+    image: oryd/hydra:v2.2.0
+    command: ["migrate", "sql", "-e", "--yes"]
+    environment:
+      DSN: postgres://hydra:hydra@hydra-postgres:5432/hydra?sslmode=disable
+    volumes:
+      - ./hydra:/etc/config
+    depends_on:
+      - hydra-postgres
+
+  hydra:
+    image: oryd/hydra:v2.2.0
+    command: ["serve", "all", "--dev", "-c", "/etc/config/hydra.yml"]
+    environment:
+      DSN: postgres://hydra:hydra@hydra-postgres:5432/hydra?sslmode=disable
+    ports:
+      - "4444:4444"
+      - "4445:4445"
+    volumes:
+      - ./hydra:/etc/config
+    depends_on:
+      - hydra-postgres
 
   kratos-migrate:
     image: oryd/kratos:v1.2.0
@@ -110,4 +145,5 @@ services:
 volumes:
   mysql_data:
   kratos_postgres_data:
+  hydra_postgres_data:
 

@@ -1,0 +1,16 @@
+urls:
+  self:
+    issuer: http://hydra:4444/
+
+log:
+  level: debug
+
+secrets:
+  system:
+    - change-me-hydra-system-secret-32bytes-min
+
+oauth2:
+  expose_internal_errors: true
+
+strategies:
+  access_token: jwt
