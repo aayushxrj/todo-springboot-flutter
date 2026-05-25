@@ -16,7 +16,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
-  bool _useKratos = false;
 
   @override
   void dispose() {
@@ -34,17 +33,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      if (_useKratos) {
-        await AuthService.loginKratos(
-          _usernameController.text.trim(),
-          _passwordController.text.trim(),
-        );
-      } else {
-        await AuthService.login(
-          _usernameController.text.trim(),
-          _passwordController.text.trim(),
-        );
-      }
+      await AuthService.loginKratos(
+        _usernameController.text.trim(),
+        _passwordController.text.trim(),
+      );
       if (!mounted) {
         return;
       }
@@ -54,9 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } catch (error) {
       setState(() {
-        _errorMessage = _useKratos
-            ? "Kratos login failed. Check your credentials."
-            : "Login failed. Check your credentials.";
+        _errorMessage = "Kratos login failed. Check your credentials.";
       });
     } finally {
       if (mounted) {
@@ -111,26 +101,10 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Use Kratos"),
-                Switch(
-                  value: _useKratos,
-                  onChanged: (value) {
-                    setState(() {
-                      _useKratos = value;
-                      _errorMessage = null;
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
             TextField(
               controller: _usernameController,
-              decoration: InputDecoration(
-                labelText: _useKratos ? "Email" : "Username",
+              decoration: const InputDecoration(
+                labelText: "Email",
               ),
               textInputAction: TextInputAction.next,
             ),
@@ -141,20 +115,18 @@ class _LoginScreenState extends State<LoginScreen> {
               obscureText: true,
               onSubmitted: (_) => _login(),
             ),
-            if (_useKratos) ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: _firstNameController,
-                decoration: const InputDecoration(labelText: "First name"),
-                textInputAction: TextInputAction.next,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _lastNameController,
-                decoration: const InputDecoration(labelText: "Last name"),
-                textInputAction: TextInputAction.next,
-              ),
-            ],
+            const SizedBox(height: 12),
+            TextField(
+              controller: _firstNameController,
+              decoration: const InputDecoration(labelText: "First name"),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _lastNameController,
+              decoration: const InputDecoration(labelText: "Last name"),
+              textInputAction: TextInputAction.next,
+            ),
             const SizedBox(height: 20),
             if (_errorMessage != null)
               Text(
@@ -182,16 +154,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
               ),
             ),
-            if (_useKratos) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _isLoading ? null : _registerKratos,
-                  child: const Text("Create Kratos Account"),
-                ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _isLoading ? null : _registerKratos,
+                child: const Text("Create Kratos Account"),
               ),
-            ],
+            ),
           ],
         ),
       ),

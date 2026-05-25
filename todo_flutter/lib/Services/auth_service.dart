@@ -8,53 +8,26 @@ import 'package:todo_flutter/Services/kratos_http_client_stub.dart'
   if (dart.library.html) 'package:todo_flutter/Services/kratos_http_client_web.dart';
 
 class AuthService {
-  static const String _jwtTokenKey = "auth_token";
   static const String _kratosSessionTokenKey = "kratos_session_token";
-
-  static Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_jwtTokenKey);
-  }
 
   static Future<String?> getKratosSessionToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_kratosSessionTokenKey);
   }
 
-  static Future<bool> hasToken() async {
-    return (await getToken()) != null;
+  static Future<bool> hasSessionToken() async {
+    return (await getKratosSessionToken()) != null;
   }
 
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_jwtTokenKey);
     await prefs.remove(_kratosSessionTokenKey);
   }
 
-  static Future<String> login(String username, String password) async {
-    final url = Uri.parse("$authBaseUrl/login");
-    final body = json.encode({"username": username, "password": password});
-
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: body,
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception("Login failed: ${response.statusCode}");
-    }
-
-    final Map<String, dynamic> responseBody = jsonDecode(response.body);
-    final String token = responseBody["token"] as String;
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_jwtTokenKey, token);
-
-    return token;
-  }
-
   static Future<String> loginKratos(String email, String password) async {
+    if (kIsWeb) {
+      return _loginKratosViaBackend(email: email, password: password);
+    }
     final client = createKratosClient();
     try {
       final Map<String, dynamic> flowBody = await _initKratosFlow(
@@ -64,6 +37,7 @@ class AuthService {
       );
       final String flowId = flowBody["id"] as String;
       final String csrfToken = _extractCsrfToken(flowBody);
+      final String actionUrl = _extractFlowAction(flowBody);
 
       final Map<String, dynamic> payload = {
         "method": "password",
@@ -75,7 +49,9 @@ class AuthService {
       }
 
       final loginResponse = await client.post(
-        Uri.parse("$kratosBaseUrl/self-service/login?flow=$flowId"),
+        Uri.parse(actionUrl.isNotEmpty
+            ? actionUrl
+            : "$kratosBaseUrl/self-service/login?flow=$flowId"),
         headers: {
           "Accept": "application/json",
           "Content-Type": "application/json",
@@ -115,6 +91,14 @@ class AuthService {
     required String firstName,
     required String lastName,
   }) async {
+    if (kIsWeb) {
+      return _registerKratosViaBackend(
+        email: email,
+        password: password,
+        firstName: firstName,
+        lastName: lastName,
+      );
+    }
     final client = createKratosClient();
     try {
       final Map<String, dynamic> flowBody = await _initKratosFlow(
@@ -123,6 +107,7 @@ class AuthService {
       );
       final String flowId = flowBody["id"] as String;
       final String csrfToken = _extractCsrfToken(flowBody);
+      final String actionUrl = _extractFlowAction(flowBody);
 
       final Map<String, dynamic> payload = {
         "method": "password",
@@ -137,7 +122,9 @@ class AuthService {
       }
 
       final registerResponse = await client.post(
-        Uri.parse("$kratosBaseUrl/self-service/registration?flow=$flowId"),
+        Uri.parse(actionUrl.isNotEmpty
+            ? actionUrl
+            : "$kratosBaseUrl/self-service/registration?flow=$flowId"),
         headers: {
           "Accept": "application/json",
           "Content-Type": "application/json",
@@ -227,11 +214,87 @@ class AuthService {
     return "";
   }
 
+  static String _extractFlowAction(Map<String, dynamic> flowBody) {
+    final Map<String, dynamic>? ui = flowBody["ui"] as Map<String, dynamic>?;
+    final String? action = ui?["action"] as String?;
+    return action ?? "";
+  }
+
+  static Future<String> _loginKratosViaBackend({
+    required String email,
+    required String password,
+  }) async {
+    final url = Uri.parse("$apiBaseUrl/auth/kratos/login");
+    final body = json.encode({"email": email, "password": password});
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: body,
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception("Kratos login failed: ${response.statusCode}");
+    }
+
+    final Map<String, dynamic> responseBody = jsonDecode(response.body);
+    final String sessionToken =
+        (responseBody["sessionToken"] as String?) ??
+        (responseBody["session_token"] as String?) ??
+        "";
+    if (sessionToken.isEmpty) {
+      throw Exception("Kratos login failed: empty session token");
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kratosSessionTokenKey, sessionToken);
+    return sessionToken;
+  }
+
+  static Future<String> _registerKratosViaBackend({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+  }) async {
+    final url = Uri.parse("$apiBaseUrl/auth/kratos/register");
+    final body = json.encode({
+      "email": email,
+      "password": password,
+      "firstName": firstName,
+      "lastName": lastName,
+    });
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: body,
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception("Kratos registration failed: ${response.statusCode}");
+    }
+
+    if (response.body.isEmpty) {
+      return "";
+    }
+
+    final Map<String, dynamic> responseBody = jsonDecode(response.body);
+    final String sessionToken =
+        (responseBody["sessionToken"] as String?) ??
+        (responseBody["session_token"] as String?) ??
+        "";
+
+    final prefs = await SharedPreferences.getInstance();
+    if (sessionToken.isNotEmpty) {
+      await prefs.setString(_kratosSessionTokenKey, sessionToken);
+    }
+    return sessionToken;
+  }
+
   static Future<Map<String, String>> authHeaders() async {
-    final token = await getToken();
+    final token = await getKratosSessionToken();
     final headers = <String, String>{"Content-Type": "application/json"};
     if (token != null && token.isNotEmpty) {
-      headers["Authorization"] = "Bearer $token";
+      headers["X-Session-Token"] = token;
     }
     return headers;
   }

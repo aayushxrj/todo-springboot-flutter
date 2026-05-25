@@ -7,7 +7,6 @@ final String apiBaseUrl = kIsWeb
 		: "http://localhost:9191");
 
 final String tasksBaseUrl = "$apiBaseUrl/tasks";
-final String authBaseUrl = "$apiBaseUrl/auth";
 
 final String kratosBaseUrl = kIsWeb
 	? "http://localhost:4433"

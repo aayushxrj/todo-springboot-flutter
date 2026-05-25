@@ -36,7 +36,7 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
-      future: AuthService.hasToken(),
+      future: AuthService.hasSessionToken(),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
