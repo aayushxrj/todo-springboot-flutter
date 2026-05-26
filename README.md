@@ -1,6 +1,6 @@
 # Todo Spring Boot + Flutter
 
-Monorepo with a Spring Boot backend, Flutter web frontend, and local observability (Prometheus + Grafana). Includes Docker Compose and Kubernetes manifests.
+Monorepo with a Spring Boot backend, a Spring Boot todos service, and a Flutter web frontend. Auth is handled by Ory Kratos for end users, and service-to-service auth uses Ory Hydra with client credentials. Observability is included via Prometheus + Grafana.
 
 ## Prerequisites
 
@@ -12,12 +12,135 @@ Monorepo with a Spring Boot backend, Flutter web frontend, and local observabili
 
 ## Project layout
 
-- todo-springboot/ - Spring Boot backend
-- todos-list/ - Spring Boot service that serves DB-backed todos
+- todo-springboot/ - Spring Boot backend (API gateway + auth + orchestration)
+- todos-list/ - Spring Boot todos service (DB-backed todos + resource server)
 - todo_flutter/ - Flutter web frontend
+- kratos/ - Ory Kratos config + identity schema
+- hydra/ - Ory Hydra config
 - docker-compose.yml - Docker Compose stack
 - kubernetes/ - Kubernetes manifests
-- prometheus/ - Prometheus and Grafana manifests or configs
+- prometheus/ - Prometheus and Grafana config
+
+## Architecture overview
+
+### Components
+
+- Flutter web (todo_flutter)
+  - UI for login, registration, and task management
+  - Uses Kratos sessions (X-Session-Token) for auth when calling backend
+
+- Backend (todo-springboot)
+  - Terminates user auth by calling Kratos /sessions/whoami
+  - Enforces method-level access control
+  - Calls todos-list via Feign
+  - Gets OAuth2 access tokens from Hydra via client credentials
+
+- Todos service (todos-list)
+  - CRUD for tasks using MySQL
+  - OAuth2 Resource Server that validates JWTs via Hydra JWKS
+
+- Ory Kratos
+  - User identity, login, and registration flows
+  - Returns session tokens and identity traits (role)
+
+- Ory Hydra
+  - OAuth2 server for service-to-service calls
+  - Issues JWT access tokens to todo-springboot
+  - Exposes JWKS for todos-list validation
+
+- MySQL
+  - Shared database for todo data (todos-list)
+
+### Request flow summary
+
+1. User logs in or registers in Flutter.
+2. Flutter calls backend /auth/kratos/* endpoints (proxy to Kratos).
+3. Backend receives the Kratos session token and stores it in the client (Flutter).
+4. Flutter calls backend /tasks with X-Session-Token.
+5. Backend validates session with Kratos /sessions/whoami and builds the Spring Security context.
+6. Backend requests a Hydra access token (client credentials) and calls todos-list via Feign.
+7. todos-list validates the JWT using Hydra JWKS and returns the tasks.
+
+## Authentication and authorization
+
+### Kratos flow (end-user)
+
+The backend validates user sessions through Kratos so the frontend never talks to Kratos directly in production.
+
+- Login/register endpoints (backend):
+  - POST /auth/kratos/login
+  - POST /auth/kratos/register
+- Session validation (backend):
+  - Kratos /sessions/whoami
+- Roles:
+  - Stored in Kratos identity traits (role: admin|user)
+  - Mapped to ROLE_ADMIN or ROLE_USER in the backend filter
+
+Flutter uses X-Session-Token headers for authenticated requests.
+
+### Hydra flow (service-to-service)
+
+todo-springboot uses OAuth2 client credentials to get an access token from Hydra and calls todos-list with Authorization: Bearer <token>.
+
+- Token request: POST http://hydra:4444/oauth2/token
+- JWKS endpoint (todos-list uses this): http://hydra:4444/.well-known/jwks.json
+
+Hydra client setup (example):
+
+```sh
+curl -i -X POST http://localhost:4445/admin/clients \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "todos-service",
+    "client_secret": "change-me",
+    "grant_types": ["client_credentials"],
+    "response_types": ["token"],
+    "token_endpoint_auth_method": "client_secret_basic",
+    "scope": "todos.read",
+    "audience": ["todos-list"]
+  }'
+```
+
+## OpenFeign integration
+
+todo-springboot uses OpenFeign to call todos-list. A Feign RequestInterceptor adds the Hydra Bearer token for each request.
+
+- Token acquisition: HydraTokenService
+- Feign interceptor: TodosListClientConfig
+- todos-list base URL: TODOSLIST_BASE_URL
+
+## Service ports
+
+- Frontend: http://localhost:8081
+- Backend: http://localhost:9191
+- todos-list: http://localhost:8082
+- Hydra public: http://localhost:4444
+- Hydra admin: http://localhost:4445
+- Kratos public: http://localhost:4433
+- Kratos admin: http://localhost:4434
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000
+
+## Configuration keys (Docker Compose)
+
+These are the main environment variables used in the stack:
+
+- todo-springboot
+  - PERMIFY_BASE_URL
+  - PERMIFY_TENANT_ID
+  - TODOSLIST_BASE_URL
+  - kratos.public-base-url
+  - hydra.public-base-url
+  - hydra.client-id
+  - hydra.client-secret
+  - hydra.scope
+  - hydra.audience
+
+- todos-list
+  - SPRING_DATASOURCE_URL
+  - SPRING_DATASOURCE_USERNAME
+  - SPRING_DATASOURCE_PASSWORD
+  - spring.security.oauth2.resourceserver.jwt.jwk-set-uri
 
 ## Get started (Docker Compose)
 
@@ -58,7 +181,7 @@ Monorepo with a Spring Boot backend, Flutter web frontend, and local observabili
    minikube service todo-frontend
    ```
 
-## Get started (Prometheus + Grafana)
+## Observability (Prometheus + Grafana)
 
 ### Install on Kubernetes using Helm
 
